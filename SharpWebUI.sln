@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32328.378
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0FB72C49-0AFC-48D2-9020-3E218FE5FB03}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpWebUI", "src\SharpWebUI\SharpWebUI.csproj", "{BA35E8A7-5EB9-4442-89E3-931D0853238C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{67541EF6-987B-4D48-9119-8F48DADEBE3C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpWebUI.Playground", "test\SharpWebUI.Playground\SharpWebUI.Playground.csproj", "{4F104871-6BDC-4E8F-A0C3-06FF19780075}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA35E8A7-5EB9-4442-89E3-931D0853238C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA35E8A7-5EB9-4442-89E3-931D0853238C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA35E8A7-5EB9-4442-89E3-931D0853238C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA35E8A7-5EB9-4442-89E3-931D0853238C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F104871-6BDC-4E8F-A0C3-06FF19780075}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F104871-6BDC-4E8F-A0C3-06FF19780075}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F104871-6BDC-4E8F-A0C3-06FF19780075}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F104871-6BDC-4E8F-A0C3-06FF19780075}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3495E92A-970E-433C-BF16-EA28D288F7AD}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BA35E8A7-5EB9-4442-89E3-931D0853238C} = {0FB72C49-0AFC-48D2-9020-3E218FE5FB03}
+		{4F104871-6BDC-4E8F-A0C3-06FF19780075} = {67541EF6-987B-4D48-9119-8F48DADEBE3C}
+	EndGlobalSection
+EndGlobal
