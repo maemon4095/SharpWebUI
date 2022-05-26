@@ -10,6 +10,7 @@ abstract class DomNodeDefinition
     }
     public string Name { get; }
     public DomNodeCategoryFlags Category { get; }
-    public abstract string GetOpening(DomNode node);
-    public abstract string GetClosing(DomNode node);
+    //TODO: use better writer 
+    public abstract void WriteOpening(TextWriter writer, DomNode node);
+    public abstract void WriteClosing(TextWriter writer, DomNode node);
 }

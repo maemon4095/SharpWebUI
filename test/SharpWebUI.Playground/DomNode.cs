@@ -22,15 +22,6 @@ readonly struct DomNode
     public object? Value { get; init; }
     public int Depth { get; }
 
-    public string GetOpening()
-    {
-        return this.Definition.GetOpening(this);
-    }
-    public string GetClosing()
-    {
-        return this.Definition.GetClosing(this);
-    }
-
     public DomNode WithValue(object value)
     {
         return new DomNode(this.Definition, this.Depth, this.Attributes, value);

@@ -5,6 +5,7 @@ dom.Append(HtmlTags.DOCTYPE);
 dom.Append(HtmlTags.Html);
 dom.AppendChild(HtmlTags.Div);
 dom.AppendChild(HtmlTags.PlainText("text"));
+dom.Append(HtmlTags.Div);
 dom.ExportAndClear(Console.Out);
 
 
@@ -24,7 +25,11 @@ class DomStructure : IDomStructure
     {
         const string tabString = "    ";
         var nodes = this._nodes;
-        export(writer, nodes.GetEnumerator(), 0);
+        var enumerator = nodes.GetEnumerator();
+        if (!enumerator.MoveNext()) return;
+        open(writer, enumerator.Current);
+        export(writer, enumerator);
+
         static void writeTab(TextWriter writer, int depth)
         {
             while (depth > 0)
@@ -33,27 +38,44 @@ class DomStructure : IDomStructure
                 depth--;
             }
         }
-        static void export(TextWriter writer, IEnumerator<DomNode> enumerator, int depth)
+        static void open(TextWriter writer, in DomNode node)
         {
-            var prev = default(DomNode?);
-            while (enumerator.MoveNext())
+            writer.Write("o: ");
+            writeTab(writer, node.Depth);
+            node.Definition.WriteOpening(writer, node);
+        }
+        static void close(TextWriter writer, in DomNode node)
+        {
+            writer.Write("c: ");
+            if (!node.Category.HasFlag(DomNodeCategoryFlags.Paired))
+            {
+                writer.WriteLine($"[{node.Name}]");
+                return;
+            }
+            writeTab(writer, node.Depth);
+            node.Definition.WriteClosing(writer, node);
+        }
+        //depth毎に再帰
+        static void export(TextWriter writer, IEnumerator<DomNode> enumerator)
+        {
+            var prev = enumerator.Current;
+            var depth = prev.Depth;
+            while (enumerator.MoveNext())//シーケンスの最後の時closeが呼ばれない。
             {
                 var current = enumerator.Current;
                 if (current.Depth < depth)
                     return;
-                writer.WriteLine(current.Category.ToString() + ":");
-                writeTab(writer, current.Depth);
-                writer.WriteLine(current.GetOpening());
+                if (current.Depth == depth)
+                {
+                    close(writer, prev);
+                }
+                open(writer, current);
                 if (current.Depth != depth)
                 {
-                    export(writer, enumerator, depth + 1);
+                    export(writer, enumerator);
+                    close(writer, prev);
                 }
-                writer.WriteLine("prev: " + prev?.Name ?? "");
-                if (prev is DomNode p && p.Category.HasFlag(DomNodeCategoryFlags.Paired))
-                {
-                    writeTab(writer, p.Depth);
-                    writer.WriteLine(p.GetClosing());
-                }
+
                 prev = current;
             }
         }
@@ -80,22 +102,31 @@ static class HtmlTagDefinitions
 
         }
 
-        public override string GetOpening(DomNode node)
+        public override void WriteOpening(TextWriter writer, DomNode node)
         {
             if (this.Name == "plaintext")
             {
-                return node.Value?.ToString() ?? "";
+                writer.WriteLine(node.Value);
             }
             else
             {
-
-                return $"<{this.Name}{(node.Attributes.Any() ? " " : "")}{string.Join(" ", node.Attributes)}>";
+                writer.Write('<');
+                writer.Write(this.Name);
+                foreach (var attr in node.Attributes)
+                {
+                    writer.Write(' ');
+                    writer.Write(attr.ToString());
+                }
+                writer.WriteLine('>');
             }
         }
 
-        public override string GetClosing(DomNode node)
+        public override void WriteClosing(TextWriter writer, DomNode node)
         {
-            return $"<{this.Name}>";
+            writer.Write('<');
+            writer.Write('/');
+            writer.Write(this.Name);
+            writer.WriteLine('>');
         }
     }
 
