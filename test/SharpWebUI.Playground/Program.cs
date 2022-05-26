@@ -10,13 +10,13 @@ class DomStructure : IDomStructure
     //TODO: sequence impl
     readonly List<DomNode> _nodes = new();
 
-    public DomNode this[int index] => this._nodes[index];
+    public DomNode this[long index] => this._nodes[(int)index];
 
-    public int Count => this._nodes.Count;
+    public long Count => this._nodes.Count;
 
     public void Append(in DomNode node) => this._nodes.Add(node);
     public void Clear() => this._nodes.Clear();
-    public void Insert(int index, in DomNode node) => this._nodes.Insert(index, node);
+    public void Insert(long index, in DomNode node) => this._nodes.Insert((int)index, node);
     public void Export(TextWriter writer)
     {
 
@@ -25,10 +25,10 @@ class DomStructure : IDomStructure
 
 interface IDomStructure
 {
-    public int Count { get; }
-    public DomNode this[int index] { get; }
+    public long Count { get; }
+    public DomNode this[long index] { get; }
     public void Append(in DomNode node);
-    public void Insert(int index, in DomNode node);
+    public void Insert(long index, in DomNode node);
     public void Clear();
     public void Export(TextWriter writer);
 }
@@ -72,11 +72,19 @@ enum DomNodeCategoryFlags
     Single = 0, 
     Paired = 1,
 }
-//texとかhtmlに対応したい．
+//ストリームにエミットする形にする？
+//単なる文字に関してはName=""、Categry = Singleとし、GetOpeningでテキストを得る。
 abstract class DomNodeDefinition
 {
-    public abstract string Name { get; }
-    public abstract DomNodeCategoryFlags Category { get; }
+    protected DomNodeDefinition(string name, DomNodeCategoryFlags category)
+    {
+        this.Name = name;
+        this.Category = category;
+    }
+    public string Name { get; }
+    public DomNodeCategoryFlags Category { get;}
+    public abstract string GetOpening(DomNodeAttributeList attributes);
+    public abstract string GetClosing(DomNodeAttributeList attributes);
 }
 
 readonly record struct DomNodeAttribute(string Name, string Value)
@@ -127,7 +135,7 @@ readonly struct DomNodeAttributeList : IEnumerable<DomNodeAttribute>
     IEnumerator<DomNodeAttribute> IEnumerable<DomNodeAttribute>.GetEnumerator() => throw new NotImplementedException();
     IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 }
-
+//<Tag> value </Tag> みたいな時どうする
 readonly record struct DomNode
 {
     public static DomNode Create(DomNodeDefinition definition)
