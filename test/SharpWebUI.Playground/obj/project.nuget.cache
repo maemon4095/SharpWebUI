@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "/60uMJeJBZLjggMv14L5qhacJT7ZLlG5x1RClAG1scK2HrM1+Zg0BJc5i+rCPoTCuK+JKXpOAiwUqMN39RYDuQ==",
+  "dgSpecHash": "zNaLUgitr4qGF0Q6Dhc7qAh2jTcLK6c2qXIcl+Dj4lszV1EKwX3LRwEbAAB3INvDEbxy2LwPT0TDLGzUF854uA==",
   "success": true,
-  "projectFilePath": "C:\\Users\\maemon\\source\\repos\\SharpWebUI\\test\\SharpWebUI.Playground\\SharpWebUI.Playground.csproj",
+  "projectFilePath": "/workspaces/SharpWebUI/test/SharpWebUI.Playground/SharpWebUI.Playground.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
