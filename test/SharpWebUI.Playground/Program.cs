@@ -1,12 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Immutable;
-using System.IO;
-
+﻿using System.IO;
 var dom = new Dom(new DomStructure());
+
 dom.Append(HtmlTags.DOCTYPE);
 dom.Append(HtmlTags.Html);
+dom.AppendChild(HtmlTags.Div);
 dom.AppendChild(HtmlTags.PlainText("text"));
-
 dom.ExportAndClear(Console.Out);
 
 
@@ -24,210 +22,41 @@ class DomStructure : IDomStructure
     public void Insert(long index, in DomNode node) => this._nodes.Insert((int)index, node);
     public void Export(TextWriter writer)
     {
-        var index = 0;
+        const string tabString = "    ";
         var nodes = this._nodes;
-        export(writer, nodes, 0, ref index);
-
-        static void export(TextWriter writer, List<DomNode> nodes, int depth, ref int index)
+        export(writer, nodes.GetEnumerator(), 0);
+        static void writeTab(TextWriter writer, int depth)
         {
-            while (index < nodes.Count)
+            while (depth > 0)
             {
-                var current = nodes[index];
-                if (current.Depth < depth)
-                    return;
-                writer.WriteLine(current.GetOpening());
-                if (current.Depth == depth)
-                {
-                    index++;
-                }
-                else
-                {
-                    export(writer, nodes, depth + 1, ref index);
-                }
-                if (current.Category.HasFlag(DomNodeCategoryFlags.Paired))
-                {
-                    writer.WriteLine(current.GetClosing());
-                }
+                writer.Write(tabString);
+                depth--;
             }
         }
-    }
-}
-
-interface IDomStructure
-{
-    public long Count { get; }
-    public DomNode this[long index] { get; }
-    public void Append(in DomNode node);
-    public void Insert(long index, in DomNode node);
-    public void Clear();
-    public void Export(TextWriter writer);
-}
-
-struct Dom
-{
-    public Dom(IDomStructure structure)
-    {
-        this.structure = structure;
-    }
-
-    readonly IDomStructure structure;
-
-    public Dom Append(in DomNode node)
-    {
-        this.structure.Append(node.WithDepth(this.CurrentDepth));
-        return this;
-    }
-    public Dom AppendChild(in DomNode node)
-    {
-        this.structure.Append(node.WithDepth(this.CurrentDepth + 1));
-        return this;
-    }
-
-    public int CurrentDepth
-    {
-        get
+        static void export(TextWriter writer, IEnumerator<DomNode> enumerator, int depth)
         {
-            var structure = this.structure;
-            var count = structure.Count;
-            if (count <= 0) return 0;
-            return structure[count - 1].Depth;
+            var prev = default(DomNode?);
+            while (enumerator.MoveNext())
+            {
+                var current = enumerator.Current;
+                if (current.Depth < depth)
+                    return;
+                writer.WriteLine(current.Category.ToString() + ":");
+                writeTab(writer, current.Depth);
+                writer.WriteLine(current.GetOpening());
+                if (current.Depth != depth)
+                {
+                    export(writer, enumerator, depth + 1);
+                }
+                writer.WriteLine("prev: " + prev?.Name ?? "");
+                if (prev is DomNode p && p.Category.HasFlag(DomNodeCategoryFlags.Paired))
+                {
+                    writeTab(writer, p.Depth);
+                    writer.WriteLine(p.GetClosing());
+                }
+                prev = current;
+            }
         }
-    }
-
-    public void ExportAndClear(TextWriter writer)
-    {
-        this.structure.Export(writer);
-        this.structure.Clear();
-    }
-}
-
-[Flags]
-enum DomNodeCategoryFlags
-{
-    Single = 0,
-    Paired = 1,
-}
-//ストリームにエミットする形にする？
-//単なる文字に関してはName=""、Categry = Singleとし、GetOpeningでテキストを得る。
-abstract class DomNodeDefinition
-{
-    protected DomNodeDefinition(string name, DomNodeCategoryFlags category)
-    {
-        this.Name = name;
-        this.Category = category;
-    }
-    public string Name { get; }
-    public DomNodeCategoryFlags Category { get; }
-    public abstract string GetOpening(DomNode node);
-    public abstract string GetClosing(DomNode node);
-}
-
-readonly record struct DomNodeAttribute(string Name, string Value)
-{
-}
-
-readonly struct DomNodeAttributeList : IEnumerable<DomNodeAttribute>
-{
-    public struct Enumerator : IEnumerator<DomNodeAttribute>
-    {
-        public Enumerator(in DomNodeAttributeList list)
-        {
-            this._enumerator = list._attributes.GetEnumerator();
-        }
-
-        ImmutableArray<DomNodeAttribute>.Enumerator _enumerator;
-        public DomNodeAttribute Current => this._enumerator.Current;
-        object IEnumerator.Current => this.Current;
-        public bool MoveNext() => this._enumerator.MoveNext();
-        public void Dispose() { }
-        public void Reset() => throw new NotSupportedException();
-    }
-
-    public static DomNodeAttributeList Empty => default;
-
-    private DomNodeAttributeList(ImmutableArray<DomNodeAttribute> attributes)
-    {
-        this._attributes = attributes;
-    }
-
-    readonly ImmutableArray<DomNodeAttribute> _attributes;//TODO: use array pool
-
-    public DomNodeAttributeList Add(in DomNodeAttribute attribute)
-    {
-        var inserted = this._attributes.Add(attribute);
-        return new DomNodeAttributeList(inserted);
-    }
-    public DomNodeAttributeList Add(string name)
-    {
-        return this.Add(new DomNodeAttribute(name, string.Empty));
-    }
-    public DomNodeAttributeList Add(string name, string value)
-    {
-        return this.Add(new DomNodeAttribute(name, value));
-    }
-
-
-    IEnumerator<DomNodeAttribute> IEnumerable<DomNodeAttribute>.GetEnumerator() => throw new NotImplementedException();
-    IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
-}
-
-//<Tag> value </Tag> みたいな時どうする
-readonly record struct DomNode
-{
-    public static DomNode Create(DomNodeDefinition definition)
-    {
-        return new DomNode(definition, 0);
-    }
-
-    DomNode(DomNodeDefinition definition, int depth)
-    {
-        this.Definition = definition;
-        this.Attributes = DomNodeAttributeList.Empty;
-        this.Depth = depth;
-        this.Value = null;
-    }
-
-    public DomNodeDefinition Definition { get; }
-    public string Name => this.Definition.Name;
-    public DomNodeCategoryFlags Category => this.Definition.Category;
-    public DomNodeAttributeList Attributes { get; init; }
-    public object? Value { get; init; }
-    public int Depth { get; }
-
-    public string GetOpening()
-    {
-        return this.Definition.GetOpening(this);
-    }
-    public string GetClosing()
-    {
-        return this.Definition.GetClosing(this);
-    }
-
-    public DomNode WithValue(object value)
-    {
-        return this with
-        {
-            Value = value
-        };
-    }
-    public DomNode WithAttribute(in DomNodeAttribute attribute)
-    {
-        return this with
-        {
-            Attributes = this.Attributes.Add(attribute)
-        };
-    }
-    public DomNode WithAttribute(string name)
-    {
-        return this.WithAttribute(new DomNodeAttribute(name, string.Empty));
-    }
-    public DomNode WithAttribute(string name, string value)
-    {
-        return this.WithAttribute(new DomNodeAttribute(name, value));
-    }
-    public DomNode WithDepth(int depth)
-    {
-        return new DomNode(this.Definition, depth);
     }
 }
 
@@ -259,7 +88,8 @@ static class HtmlTagDefinitions
             }
             else
             {
-                return $"<{this.Name} {string.Join(" ", node.Attributes.Select(pair => $"{pair.Name} = {pair.Value}"))}>";
+
+                return $"<{this.Name}{(node.Attributes.Any() ? " " : "")}{string.Join(" ", node.Attributes)}>";
             }
         }
 
@@ -272,6 +102,7 @@ static class HtmlTagDefinitions
     public static DomNodeDefinition DOCTYPE { get; } = new GenericTag("!DOCTYPE", DomNodeCategoryFlags.Single);
     public static DomNodeDefinition PlainText { get; } = new GenericTag("plaintext", DomNodeCategoryFlags.Single);
     public static DomNodeDefinition Html { get; } = new GenericTag("html", DomNodeCategoryFlags.Paired);
+    public static DomNodeDefinition Div { get; } = new GenericTag("div", DomNodeCategoryFlags.Paired);
 }
 
 static class HtmlTags
@@ -279,6 +110,7 @@ static class HtmlTags
     public static DomNode DOCTYPE => DomNode.Create(HtmlTagDefinitions.DOCTYPE).WithAttribute("html");
     public static DomNode PlainText(string str) => DomNode.Create(HtmlTagDefinitions.PlainText).WithValue(str);
     public static DomNode Html => DomNode.Create(HtmlTagDefinitions.Html);
+    public static DomNode Div => DomNode.Create(HtmlTagDefinitions.Div);
 }
 
 struct Model
