@@ -1,14 +1,33 @@
-﻿using System.IO;
-var dom = new Dom(new DomStructure());
-
-dom.Append(HtmlTags.DOCTYPE);
-dom.Append(HtmlTags.Html);
-dom.AppendChild(HtmlTags.Div);
-dom.AppendChild(HtmlTags.PlainText("text"));
-dom.Append(HtmlTags.Div);
-dom.ExportAndClear(Console.Out);
+﻿using System.Buffers;
+using System.IO;
 
 
+Console.ReadLine();
+
+abstract class DomNodeHandler<T>
+{
+    public abstract DomNodeCategoryFlags GetCategory(T node);
+    public abstract void WriteOpening(ref TextBufferWriter writer, T node);
+    public abstract void WriteClosing(ref TextBufferWriter writer, T node);
+}
+
+interface IDomStructure<T> : IEnumerable<(T Node, int Depth)>
+{
+    DomNodeHandler<T> Handler { get; }
+
+    public long Count { get; }
+    public T this[long index] { get; }
+    public void Append(T node);
+    public void Insert(long index, T node);
+    public void Clear();
+    public void Export(ref TextBufferWriter writer);
+}
+
+
+
+//T: DomNode, DomNodeHandler<T>みたいなAPIにする？ 
+//現状はDomNodeがunmanagedじゃないし，htmlによりすぎ. texは属性とかない．
+//depthとidだけ持って，データはハンドラないで扱ってもらったほうがよさそう． ECS的な．
 class DomStructure : IDomStructure
 {
     //TODO: sequence impl
@@ -24,10 +43,8 @@ class DomStructure : IDomStructure
     public void Export(TextWriter writer)
     {
         const string tabString = "    ";
-        var nodes = this._nodes;
-        var enumerator = nodes.GetEnumerator();
-        if (!enumerator.MoveNext()) return;
-        open(writer, enumerator.Current);
+        var enumerator = this._nodes.GetEnumerator();
+        enumerator.MoveNext();
         export(writer, enumerator);
 
         static void writeTab(TextWriter writer, int depth)
@@ -40,44 +57,43 @@ class DomStructure : IDomStructure
         }
         static void open(TextWriter writer, in DomNode node)
         {
-            writer.Write("o: ");
             writeTab(writer, node.Depth);
             node.Definition.WriteOpening(writer, node);
         }
         static void close(TextWriter writer, in DomNode node)
         {
-            writer.Write("c: ");
-            if (!node.Category.HasFlag(DomNodeCategoryFlags.Paired))
-            {
-                writer.WriteLine($"[{node.Name}]");
-                return;
-            }
+            if (!node.Category.HasFlag(DomNodeCategoryFlags.Paired)) return;
+
             writeTab(writer, node.Depth);
             node.Definition.WriteClosing(writer, node);
         }
         //depth毎に再帰
-        static void export(TextWriter writer, IEnumerator<DomNode> enumerator)
+        static bool export(TextWriter writer, IEnumerator<DomNode> enumerator)
         {
-            var prev = enumerator.Current;
-            var depth = prev.Depth;
-            while (enumerator.MoveNext())//シーケンスの最後の時closeが呼ばれない。
+            var current = enumerator.Current;
+            var depth = current.Depth;
+            do
             {
-                var current = enumerator.Current;
-                if (current.Depth < depth)
-                    return;
-                if (current.Depth == depth)
-                {
-                    close(writer, prev);
-                }
                 open(writer, current);
-                if (current.Depth != depth)
+                var terminal = !enumerator.MoveNext();
+                if (terminal) goto EXIT;
+                var next = enumerator.Current;
+                if (next.Depth < depth) goto EXIT;
+                if (next.Depth != depth)
                 {
-                    export(writer, enumerator);
-                    close(writer, prev);
+                    terminal = export(writer, enumerator);
+                    if (terminal) goto EXIT;
+                    next = enumerator.Current;
                 }
+                close(writer, current);
+                current = next;
+                continue;
 
-                prev = current;
+                EXIT:
+                close(writer, current);
+                return terminal;
             }
+            while (true);
         }
     }
 }

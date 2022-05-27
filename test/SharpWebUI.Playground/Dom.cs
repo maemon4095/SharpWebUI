@@ -3,6 +3,7 @@ struct Dom
     public Dom(IDomStructure structure)
     {
         this.structure = structure;
+        this.CurrentDepth = structure.Count <= 0 ? 0 : structure[structure.Count - 1].Depth;
     }
 
     readonly IDomStructure structure;
@@ -12,21 +13,20 @@ struct Dom
         this.structure.Append(node.WithDepth(this.CurrentDepth));
         return this;
     }
-    public Dom AppendChild(in DomNode node)
+    public Dom Children()
     {
-        this.structure.Append(node.WithDepth(this.CurrentDepth + 1));
+        this.CurrentDepth++;
+        return this;
+    }
+    public Dom Parent()
+    {
+        this.CurrentDepth--;
         return this;
     }
 
     public int CurrentDepth
     {
-        get
-        {
-            var structure = this.structure;
-            var count = structure.Count;
-            if (count <= 0) return 0;
-            return structure[count - 1].Depth;
-        }
+        get; private set;
     }
 
     public void ExportAndClear(TextWriter writer)
